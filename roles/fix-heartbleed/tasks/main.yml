@@ -1,0 +1,28 @@
+---
+# tasks file for fix-heartbleed
+  - name: "Install packages and update cache"
+    dnf: 
+      name: openssl 
+      state: latest 
+      update_cache: yes
+
+  - name: Restart services
+    systemd: state=restarted name= {{ item }}
+    with_items:
+      - nginx
+      - apache2
+      - postgresql
+      - php5-fpm
+      - openvpn
+      - postfix
+      - monit
+      - unbound
+
+  - name: "Check that we don't have affected processes running"
+    shell: >
+        if [ "$(sudo lsof -n | grep ssl | grep DEL | wc -l)" = "1" ]; then echo "We are Valnurable"; checkrestart; exit 1; fi
+    tags: check
+
+  - name: "If above goes well"
+    debug:
+      msg: "You are not Valnurable with HeartBleed"
